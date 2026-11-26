@@ -1,0 +1,34 @@
+# SPDX-License-Identifier: BSD-2-Clause
+name: Live contract
+
+# Nightly: the quickstart and a short read-only contract run against the live
+# API with a CI key. Never on pull requests (forks never see the secret).
+on:
+  schedule:
+    - cron: "37 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    if: github.repository == 'Ourea-Technologies/ensemble-weather-matlab'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: matlab-actions/setup-matlab@f9e43010f1ae678f7cfa0542fe2a4f60f7d1ad8d # v3.1.0
+        with:
+          release: latest
+      - name: Quickstart (anonymous)
+        uses: matlab-actions/run-command@bfa857648f4895aa98a446fe41c85e0788421ed5 # v3.3.0
+        with:
+          command: addpath("toolbox"); run("examples/quickstart.m")
+      - name: Contract run (read-only key)
+        uses: matlab-actions/run-command@bfa857648f4895aa98a446fe41c85e0788421ed5 # v3.3.0
+        env:
+          OUREA_API_KEY: ${{ secrets.OUREA_CI_API_KEY }}
+        with:
+          command: addpath("toolbox", "scripts"); liveContract

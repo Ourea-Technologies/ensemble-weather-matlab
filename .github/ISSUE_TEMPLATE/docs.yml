@@ -1,0 +1,16 @@
+name: Documentation
+description: A wrong or unclear docs page, README section or example.
+labels: [documentation]
+body:
+  - type: input
+    id: where
+    attributes:
+      label: Which page, section or example?
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What is wrong or unclear?
+    validations:
+      required: true

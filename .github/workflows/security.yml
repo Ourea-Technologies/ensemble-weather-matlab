@@ -1,0 +1,71 @@
+# SPDX-License-Identifier: BSD-2-Clause
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "41 5 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  eval-gate:
+    name: Static security lint (no eval/evalin in the toolbox)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The same rule as `buildtool evalGate` (Code Analyzer runs in ci.yml),
+      # without MATLAB, so it also runs on forks: no eval, evalin, evalc or
+      # assignin in shipped code, outside comments.
+      - name: No eval-family calls in toolbox/
+        run: |
+          if grep -rnE --include='*.m' '^[^%]*\<(eval|evalin|evalc|assignin)[[:space:]]*\(' toolbox/; then
+            echo "eval-family calls found in toolbox/" >&2
+            exit 1
+          fi
+          echo "no eval-family calls in toolbox/"
+
+  audit:
+    name: Dependency audit (dev tooling; the toolbox has no runtime dependencies)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - name: pip-audit on scripts/requirements.txt
+        run: pipx run pip-audit --strict --disable-pip --require-hashes -r scripts/requirements.txt
+
+  zizmor:
+    name: Workflow audit (zizmor)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # upload SARIF to code scanning
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: zizmorcore/zizmor-action@53290badfa369cb0bf7ad16342cb62c2fa47ac7b # v0.8.0
+
+  dependency-review:
+    name: Dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: low
+          allow-licenses: >-
+            MIT, BSD-2-Clause, BSD-3-Clause, Apache-2.0, ISC, PSF-2.0,
+            Python-2.0, MPL-2.0, 0BSD, Unlicense
