@@ -15,9 +15,9 @@ f = client.forecast(place, MaxHours=48, ...
     Totals=ensembleweather.Total("snowfall", 48));
 check(f.location.slug == "mt-hood-meadows", "forecast location");
 check(isdatetime(f.series.timeseries(1).valid_time), "valid_time is a datetime");
-check(numel(f.probabilities) == 1 && f.probabilities(1).term == "snowfall:ge:152.40:24h", ...
+check(isscalar(f.probabilities) && f.probabilities(1).term == "snowfall:ge:152.40:24h", ...
     "probability term");
-check(numel(f.window_totals) == 1, "window total");
+check(isscalar(f.window_totals), "window total");
 check(height(ensembleweather.toTimetable(f)) == numel(f.series.timeseries), "toTimetable");
 
 plume = anonymous.forecast(place, Members="plume", MaxHours=12, Daily=false);

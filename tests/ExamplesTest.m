@@ -134,5 +134,5 @@ end
 
 function output = runScript(file)
 % Run an example script in its own workspace and return what it printed.
-output = string(evalc("run(file)"));
+output = string(evalc("run(""" + file + """)"));
 end

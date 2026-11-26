@@ -841,7 +841,7 @@ classdef Client < handle
                 cached = obj.Cache.get(cacheKey);
                 if ~isempty(cached)
                     if cached.maxAge > 0 && obj.Clock() - cached.storedAt < cached.maxAge
-                        [result, meta] = obj.decodeBody(op, url, 200, cached.headers, ...
+                        [result, meta] = decodeBody(op, url, 200, cached.headers, ...
                             cached.body, false, true);
                         return
                     end
@@ -872,14 +872,14 @@ classdef Client < handle
                 ensembleweather.internal.deprecation("check", op.operation, responseHeaders);
                 if status == 304 && ~isempty(cached)
                     entry = obj.revalidate(cacheKey, cached, responseHeaders);
-                    [result, meta] = obj.decodeBody(op, url, 304, entry.headers, ...
+                    [result, meta] = decodeBody(op, url, 304, entry.headers, ...
                         entry.body, true, true);
                     return
                 end
                 body = bodyText(response.body);
                 if status >= 200 && status < 300
                     obj.store(cacheKey, responseHeaders, body);
-                    [result, meta] = obj.decodeBody(op, url, status, responseHeaders, ...
+                    [result, meta] = decodeBody(op, url, status, responseHeaders, ...
                         body, false, false);
                     return
                 end
@@ -967,38 +967,6 @@ classdef Client < handle
             else
                 obj.Cache.set(cacheKey, entry);
             end
-        end
-
-        function [result, meta] = decodeBody(obj, op, url, status, headers, body, ...
-                revalidated, fromCache)
-            try
-                data = jsondecode(body);
-            catch failure
-                throw(ensembleweather.OureaError("unexpected_response", op.operation ...
-                    + ": the response is not JSON (" + failure.message + ")"));
-            end
-            try
-                result = ensembleweather.internal.decode(data, op.type, op.geojson);
-            catch failure
-                if failure.identifier ~= "ensembleweather:internal:decode"
-                    rethrow(failure);
-                end
-                throw(ensembleweather.OureaError("unexpected_response", op.operation ...
-                    + ": the response is not the documented " + extractAfter(op.type, 2) ...
-                    + " (" + failure.message + ")"));
-            end
-            if ~isempty(op.finish)
-                result = op.finish(result);
-            end
-            meta = struct( ...
-                "status", status, ...
-                "url", url, ...
-                "headers", headers, ...
-                "request_id", {ensembleweather.internal.header(headers, "X-Request-Id")}, ...
-                "rate_limit", {ensembleweather.internal.rateLimit(headers)}, ...
-                "etag", {ensembleweather.internal.header(headers, "ETag")}, ...
-                "revalidated", revalidated, ...
-                "from_cache", fromCache);
         end
 
         function failure = apiError(obj, status, headers, body)
@@ -1092,6 +1060,38 @@ if isempty(cursor)
 else
     page = method(leading{:}, args{:}, "Cursor", cursor);
 end
+end
+
+function [result, meta] = decodeBody(op, url, status, headers, body, revalidated, fromCache)
+% Decode a 2xx (or revalidated) body into the operation's result and its metadata.
+    try
+        data = jsondecode(body);
+    catch failure
+        throw(ensembleweather.OureaError("unexpected_response", op.operation ...
+            + ": the response is not JSON (" + failure.message + ")"));
+    end
+    try
+        result = ensembleweather.internal.decode(data, op.type, op.geojson);
+    catch failure
+        if failure.identifier ~= "ensembleweather:internal:decode"
+            rethrow(failure);
+        end
+        throw(ensembleweather.OureaError("unexpected_response", op.operation ...
+            + ": the response is not the documented " + extractAfter(op.type, 2) ...
+            + " (" + failure.message + ")"));
+    end
+    if ~isempty(op.finish)
+        result = op.finish(result);
+    end
+    meta = struct( ...
+        "status", status, ...
+        "url", url, ...
+        "headers", headers, ...
+        "request_id", {ensembleweather.internal.header(headers, "X-Request-Id")}, ...
+        "rate_limit", {ensembleweather.internal.rateLimit(headers)}, ...
+        "etag", {ensembleweather.internal.header(headers, "ETag")}, ...
+        "revalidated", revalidated, ...
+        "from_cache", fromCache);
 end
 
 function value = opt(options, name)

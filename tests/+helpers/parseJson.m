@@ -17,7 +17,7 @@ end
 end
 
 function i = skip(text, i)
-while i <= numel(text) && any(text(i) == [' ', char(9), char(10), char(13)])
+while i <= numel(text) && any(text(i) == [' ', char(9), newline, char(13)])
     i = i + 1;
 end
 end
@@ -97,7 +97,7 @@ while text(i) ~= '"'
     if c == '\'
         e = text(i + 1);
         switch e
-            case 'n', out(end + 1) = char(10); %#ok<AGROW>
+            case 'n', out(end + 1) = newline; %#ok<AGROW>
             case 't', out(end + 1) = char(9); %#ok<AGROW>
             case 'r', out(end + 1) = char(13); %#ok<AGROW>
             case 'b', out(end + 1) = char(8); %#ok<AGROW>
