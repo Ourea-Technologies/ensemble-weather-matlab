@@ -68,10 +68,23 @@ jobs:
           persist-credentials: false
       - uses: matlab-actions/setup-matlab@f9e43010f1ae678f7cfa0542fe2a4f60f7d1ad8d # v3.1.0
         with:
-          release: R2023b
+          release: latest
       - uses: matlab-actions/run-build@cf54c2229a74d57eb4e6ba1bbebd45793d37797e # v3.4.0
         with:
           tasks: package
+      - name: Install the .mltbx in a fresh session and decode a body from it
+        uses: matlab-actions/run-command@bfa857648f4895aa98a446fe41c85e0788421ed5 # v3.3.0
+        with:
+          command: >-
+            files = dir("release/*.mltbx");
+            installed = matlab.addons.install(fullfile(files(1).folder, files(1).name));
+            disp(installed);
+            assert(~contains(which("ensembleweather.Client"), fullfile(pwd, "toolbox")));
+            body = fileread("spec/vectors/bodies/forecast-metric.json");
+            replay = @(r) struct("status", 200, "headers", ["Content-Type" "application/json"], "body", unicode2native(body, "UTF-8"));
+            f = ensembleweather.Client(Transport=replay).forecast("or/mt-hood-meadows");
+            assert(f.location.slug == "mt-hood-meadows");
+            fprintf("installed %s %s: ok\n", installed.Name, installed.Version);
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: mltbx
