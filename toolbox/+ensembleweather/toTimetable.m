@@ -67,7 +67,7 @@ if isfield(series, "ensemble")
         end
     end
 end
-tt = timetable(time, columns{:}, "VariableNames", names);
+tt = timetable(time, columns{:}, 'VariableNames', cellstr(names));
 tt.Properties.DimensionNames{1} = 'Time';
 end
 

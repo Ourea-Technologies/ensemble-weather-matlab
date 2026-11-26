@@ -11,14 +11,9 @@ function plan = buildfile
 
 %   Copyright (c) 2026 Ourea Technologies. BSD-2-Clause.
 
-import matlab.buildtool.tasks.CodeIssuesTask
 import matlab.buildtool.tasks.TestTask
 
 plan = buildplan(localfunctions);
-
-plan("analyze") = CodeIssuesTask(["toolbox", "tests", "examples", "buildfile.m"], ...
-    IncludeSubfolders=true, ErrorThreshold=0, WarningThreshold=0);
-plan("analyze").Description = "Code Analyzer: zero errors and zero warnings";
 
 plan("check").Dependencies = ["analyze", "evalGate"];
 
@@ -32,6 +27,20 @@ end
 
 function checkTask(~)
 % Static checks: Code Analyzer and the eval gate.
+end
+
+function analyzeTask(context)
+% Code Analyzer: zero errors and zero warnings in every MATLAB file.
+root = context.Plan.RootFolder;
+targets = fullfile(root, ["toolbox", "tests", "examples", "scripts", "buildfile.m"]);
+issues = codeIssues(targets, IncludeSubfolders=true);
+found = issues.Issues;
+for i = 1:height(found)
+    fprintf("%s:%d: [%s] %s %s\n", string(found.FullFilename(i)), found.LineStart(i), ...
+        string(found.Severity(i)), string(found.CheckID(i)), string(found.Description(i)));
+end
+fprintf("analyze: %d files, %d issues\n", numel(issues.Files), height(found));
+assert(height(found) == 0, "analyze:issues", "Code Analyzer found %d issues", height(found));
 end
 
 function evalGateTask(context)

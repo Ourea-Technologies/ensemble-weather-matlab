@@ -86,7 +86,8 @@ classdef ExamplesTest < matlab.unittest.TestCase
 
         function readmeQuickstartIsTheExample(testCase)
             readme = string(fileread(fullfile(testCase.Root, "README.md"), "Encoding", "UTF-8"));
-            blocks = extractBetween(readme, "```matlab" + newline, "```");
+            blocks = extractBetween(extractAfter(readme, "## Quickstart"), ...
+                "```matlab" + newline, "```");
             testCase.assertNotEmpty(blocks, "README has no MATLAB code");
             source = string(fileread(fullfile(testCase.Root, "examples", "quickstart.m"), ...
                 "Encoding", "UTF-8"));

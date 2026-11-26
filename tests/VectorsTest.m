@@ -314,12 +314,11 @@ classdef VectorsTest < matlab.unittest.TestCase
         function checkRequest(testCase, request, wanted)
             url = string(request.url);
             label = "GET " + url;
-            parts = regexp(url, "^([a-z]+)://([^/?#]*)([^?]*)(\?(.*))?$", "tokens", "once");
-            path = parts(3);
-            if numel(parts) >= 5
-                query = parts(5);
-            else
-                query = "";
+            target = extractAfter(url, "://");
+            path = "/" + extractAfter(extractBefore(target + "?", "?"), "/");
+            query = "";
+            if contains(url, "?")
+                query = extractAfter(url, "?");
             end
             if isKey(wanted, "method")
                 testCase.verifyEqual(string(request.method), wanted("method"), label);

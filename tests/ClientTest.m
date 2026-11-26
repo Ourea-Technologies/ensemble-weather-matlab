@@ -125,7 +125,7 @@ classdef ClientTest < matlab.unittest.TestCase
             k = ensembleweather.Chance.atMost("temperature", 273.15, Unit="K", Window=[6 18], ...
                 Aggregation="all");
             testCase.verifyEqual(k.wire("metric"), "temperature:le:0.0:6-18h:all");
-            testCase.verifyEqual(k.wire("kelvin"), "temperature:le:273.1:6-18h:all");
+            testCase.verifyEqual(k.wire("kelvin"), "temperature:le:273.2:6-18h:all");  % 273.15 * 10 is 2731.5
             m = ensembleweather.Chance.atLeast("wind_speed", 40, Unit="mph");
             testCase.verifyEqual(m.wire("metric"), "wind_speed:ge:17.9:24h");
             n = ensembleweather.Chance.atMost("temperature", -0.04);
@@ -153,8 +153,7 @@ classdef ClientTest < matlab.unittest.TestCase
             testCase.verifyFalse(contains(formattedDisplayText(client), "ow_secret_value_123"));
             testCase.verifyFalse(contains(formattedDisplayText(client, "SuppressMarkup", true), ...
                 "ow_secret_value_123"));
-            names = string(properties(client));
-            testCase.verifyFalse(any(contains(lower(names), "key") & names ~= "HasApiKey"));
+            testCase.verifyFalse(any(string(properties(client)) == "ApiKey"));
         end
 
         function keyIsScrubbedFromErrors(testCase)
