@@ -1,0 +1,27 @@
+name: Feature request
+description: Suggest an improvement to the MATLAB toolbox.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would help?
+      description: Probabilities and totals are computed by the server; a helper that needs client-side statistics is a request for a new API query.
+    validations:
+      required: true
+  - type: dropdown
+    id: server
+    attributes:
+      label: Does it need an API change?
+      options:
+        - "No, the toolbox alone"
+        - "Yes, a new or changed API query"
+        - "Not sure"
+    validations:
+      required: true

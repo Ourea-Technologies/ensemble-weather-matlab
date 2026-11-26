@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: BSD-2-Clause
+# The toolbox has no runtime dependencies. Dependabot keeps the pinned
+# workflow actions and the generator's dev tooling current, after a cooldown
+# so a just-published (possibly compromised) release is not picked up at once.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]
+  - package-ecosystem: pip
+    directory: /scripts
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7

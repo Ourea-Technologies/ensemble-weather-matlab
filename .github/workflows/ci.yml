@@ -1,0 +1,105 @@
+# SPDX-License-Identifier: BSD-2-Clause
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check:
+    name: Code Analyzer and eval gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: matlab-actions/setup-matlab@f9e43010f1ae678f7cfa0542fe2a4f60f7d1ad8d # v3.1.0
+        with:
+          release: latest
+      - uses: matlab-actions/run-build@cf54c2229a74d57eb4e6ba1bbebd45793d37797e # v3.4.0
+        with:
+          tasks: check
+
+  test:
+    name: Tests (MATLAB ${{ matrix.release }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        release: [R2023b, R2024b, latest]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: matlab-actions/setup-matlab@f9e43010f1ae678f7cfa0542fe2a4f60f7d1ad8d # v3.1.0
+        with:
+          release: ${{ matrix.release }}
+      # Unit tests, all 58 shared vectors, spec drift, and every example plus
+      # the real HTTP transport against tests/stub_server.py. No test calls
+      # the real API.
+      - uses: matlab-actions/run-tests@214a16e600ef2c705a4b2dd6c0794dc6957682a9 # v3.3.0
+        with:
+          source-folder: toolbox
+          select-by-folder: tests
+          strict: true
+          test-results-junit: test-results/results.xml
+          code-coverage-cobertura: test-results/coverage.xml
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: test-results-${{ matrix.release }}
+          path: test-results/
+
+  package:
+    name: Build the .mltbx (buildtool package)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: matlab-actions/setup-matlab@f9e43010f1ae678f7cfa0542fe2a4f60f7d1ad8d # v3.1.0
+        with:
+          release: latest
+      - uses: matlab-actions/run-build@cf54c2229a74d57eb4e6ba1bbebd45793d37797e # v3.4.0
+        with:
+          tasks: package
+      - name: Install the .mltbx in a fresh session and decode a body from it
+        uses: matlab-actions/run-command@bfa857648f4895aa98a446fe41c85e0788421ed5 # v3.3.0
+        with:
+          command: >-
+            files = dir("release/*.mltbx");
+            installed = matlab.addons.install(fullfile(files(1).folder, files(1).name));
+            disp(installed);
+            assert(~contains(which("ensembleweather.Client"), fullfile(pwd, "toolbox")));
+            body = fileread("spec/vectors/bodies/forecast-metric.json");
+            replay = @(r) struct("status", 200, "headers", ["Content-Type" "application/json"], "body", unicode2native(body, "UTF-8"));
+            f = ensembleweather.Client(Transport=replay).forecast("or/mt-hood-meadows");
+            assert(f.location.slug == "mt-hood-meadows");
+            fprintf("installed %s %s: ok\n", installed.Name, installed.Version);
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mltbx
+          path: release/*.mltbx
+
+  spec:
+    name: spec/ matches spec/VERSION; generated files are fresh
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - run: scripts/sync-spec --check
+      - run: python -m pip install --require-hashes -r scripts/requirements.txt
+      - run: python scripts/gen_schema.py --check

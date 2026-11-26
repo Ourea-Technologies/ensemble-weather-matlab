@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and show and tell
+    url: https://github.com/Ourea-Technologies/ensemble-weather-matlab/discussions
+    about: Ask a question or share what you built.
+  - name: Documentation
+    url: https://docs.oureawx.com/matlab
+    about: Guides and the API concepts.
+  - name: Report a security issue
+    url: https://github.com/Ourea-Technologies/ensemble-weather-matlab/security/advisories/new
+    about: Privately, never as a public issue.
